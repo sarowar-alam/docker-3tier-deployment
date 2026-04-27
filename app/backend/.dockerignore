@@ -1,0 +1,8 @@
+node_modules
+.env
+.env.*
+ecosystem.config.js
+logs/
+*.log
+.git
+.gitignore

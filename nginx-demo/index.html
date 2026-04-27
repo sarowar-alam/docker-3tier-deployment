@@ -71,13 +71,16 @@
     nav {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 0 40px;
       position: sticky;
       top: 0;
       z-index: 100;
-      display: flex;
-      gap: 0;
       overflow-x: auto;
+    }
+    nav .nav-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      padding: 0 24px;
     }
     nav a {
       display: block;
@@ -251,16 +254,18 @@
 
     /* ── ARCH DIAGRAM ── */
     .arch {
+      width: fit-content;
+      margin: 20px auto;
       background: var(--code-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 24px;
-      margin: 20px 0;
       font-family: "JetBrains Mono", monospace;
       font-size: 12.5px;
       line-height: 1.8;
       color: #c9d1d9;
       overflow-x: auto;
+      white-space: pre;
     }
     .arch .box-label { color: var(--accent); font-weight: 700; }
     .arch .arrow     { color: var(--accent3); }
@@ -343,6 +348,8 @@
       border-radius: 5px;
       padding: 6px 10px;
       margin-bottom: 8px;
+      white-space: nowrap;
+      overflow-x: auto;
     }
     .cmd-card p { font-size: 12.5px; color: var(--muted); margin: 0; }
 
@@ -379,17 +386,19 @@
 <header>
   <div class="badge">DevOps Reference Documentation</div>
   <h1>Containerization &amp; <span>Docker</span></h1>
-  <p>Concepts, Architecture, Commands, and Dockerfile Fundamentals — April 2026</p>
+  <p>Containerization &nbsp;·&nbsp; Docker Architecture &nbsp;·&nbsp; VMs vs Containers &nbsp;·&nbsp; Images vs Containers &nbsp;·&nbsp; Commands &nbsp;·&nbsp; Dockerfile — April 2026</p>
 </header>
 
 <!-- ═══════════════════════════════════ NAV ═══════════════════════════════════ -->
 <nav>
-  <a href="#containerization">Containerization</a>
-  <a href="#architecture">Docker Architecture</a>
-  <a href="#vm-vs-container">VMs vs Containers</a>
-  <a href="#images-vs-containers">Images vs Containers</a>
-  <a href="#commands">Commands</a>
-  <a href="#dockerfile">Dockerfile</a>
+  <div class="nav-inner">
+    <a href="#containerization">Containerization</a>
+    <a href="#architecture">Docker Architecture</a>
+    <a href="#vm-vs-container">VMs vs Containers</a>
+    <a href="#images-vs-containers">Images vs Containers</a>
+    <a href="#commands">Commands</a>
+    <a href="#dockerfile">Dockerfile</a>
+  </div>
 </nav>
 
 <!-- ═══════════════════════════════════ CONTENT ═══════════════════════════════════ -->
@@ -397,7 +406,7 @@
 
   <!-- ─── SECTION 1: CONTAINERIZATION ─── -->
   <section id="containerization">
-    <div class="section-label"><span class="num">1</span> Introduction</div>
+    <div class="section-label"><span class="num">1</span> Containerization</div>
     <h2>What is Containerization?</h2>
 
     <p>
@@ -449,7 +458,7 @@
 
   <!-- ─── SECTION 2: DOCKER ARCHITECTURE ─── -->
   <section id="architecture">
-    <div class="section-label"><span class="num">2</span> Architecture</div>
+    <div class="section-label"><span class="num">2</span> Docker Architecture</div>
     <h2>What is Docker &amp; Docker Architecture</h2>
 
     <p>
@@ -458,24 +467,22 @@
       Docker Daemon, which performs the actual work.
     </p>
 
-    <div class="arch">
-<span class="box-label">┌─────────────────────────────────────────┐</span>
-<span class="box-label">│           DOCKER CLIENT                 │</span>
-│   docker build  │  docker run  │  docker pull  │
+    <div class="arch"><span class="box-label">┌─────────────────────────────────────────┐</span>
+<span class="box-label">│              DOCKER CLIENT              │</span>
+│     CLI: build | run | pull | push      │
 <span class="box-label">└───────────────────┬─────────────────────┘</span>
                     │  REST API (Unix socket / TCP)
                     <span class="arrow">▼</span>
 <span class="box-label">┌─────────────────────────────────────────┐</span>
 <span class="box-label">│        DOCKER DAEMON  (dockerd)         │</span>
-│  Image Mgmt  │  Containers  │  Networks  │
-│  Volumes     │  containerd  │  runc      │
+│ Image Mgmt  ·  Containers  ·  Networks  │
+│    Volumes    ·  containerd  ·  runc    │
 <span class="box-label">└───────────────────┬─────────────────────┘</span>
                     <span class="arrow">▼</span>
 <span class="box-label">┌─────────────────────────────────────────┐</span>
-<span class="box-label">│           DOCKER REGISTRY               │</span>
-│  Docker Hub  │  AWS ECR  │  Private      │
-<span class="box-label">└─────────────────────────────────────────┘</span>
-    </div>
+<span class="box-label">│             DOCKER REGISTRY             │</span>
+│   Docker Hub  ·  AWS ECR  ·  Private    │
+<span class="box-label">└─────────────────────────────────────────┘</span></div>
 
     <h3>Core Components</h3>
     <div class="table-wrap">
@@ -496,7 +503,7 @@
 
   <!-- ─── SECTION 3: VM vs CONTAINERS ─── -->
   <section id="vm-vs-container">
-    <div class="section-label"><span class="num">3</span> Comparison</div>
+    <div class="section-label"><span class="num">3</span> VMs vs Containers</div>
     <h2>Docker vs Virtual Machines</h2>
 
     <p>
@@ -557,7 +564,7 @@
 
   <!-- ─── SECTION 4: IMAGES vs CONTAINERS ─── -->
   <section id="images-vs-containers">
-    <div class="section-label"><span class="num">4</span> Core Concepts</div>
+    <div class="section-label"><span class="num">4</span> Images vs Containers</div>
     <h2>Docker Images vs Containers</h2>
 
     <div class="callout gold">
@@ -572,14 +579,12 @@
       Images are built in layers — each Dockerfile instruction creates one cached, shareable, immutable layer.
     </p>
 
-    <div class="arch">
-<span class="note">Image Layers (read-only, bottom to top):</span>
+    <div class="arch"><span class="note">Image Layers (read-only, bottom to top):</span>
 
-  Layer 4: <span class="box-label">COPY src/ ./src/</span>        <span class="note">← application source code</span>
-  Layer 3: <span class="box-label">RUN npm install</span>          <span class="note">← cached if package.json unchanged</span>
-  Layer 2: <span class="box-label">WORKDIR /app</span>             <span class="note">← working directory</span>
-  Layer 1: <span class="box-label">FROM node:18-alpine</span>      <span class="note">← shared base layer</span>
-    </div>
+  Layer 4: <span class="box-label">COPY src/ ./src/</span>          <span class="note">← application source code</span>
+  Layer 3: <span class="box-label">RUN npm install</span>           <span class="note">← cached if package.json unchanged</span>
+  Layer 2: <span class="box-label">WORKDIR /app</span>              <span class="note">← working directory</span>
+  Layer 1: <span class="box-label">FROM node:18-alpine</span>       <span class="note">← shared base layer</span></div>
 
     <h3>Docker Container</h3>
     <p>
@@ -620,7 +625,7 @@
 
   <!-- ─── SECTION 5: COMMANDS ─── -->
   <section id="commands">
-    <div class="section-label"><span class="num">5</span> Reference</div>
+    <div class="section-label"><span class="num">5</span> Commands</div>
     <h2>Docker Commands Reference</h2>
 
     <h3>Image Commands</h3>
@@ -775,7 +780,7 @@
 <!-- ═══════════════════════════════════ FOOTER ═══════════════════════════════════ -->
 <footer>
   <p>Containerization &amp; Docker — Concepts and Reference &nbsp;|&nbsp; <span>April 2026</span></p>
-  <p style="margin-top:6px; font-size:12px;">Served via Docker + Nginx &nbsp;·&nbsp; <code style="font-size:11px;">docker run -d -p 8080:80 custom-nginx-page</code></p>
+  <p style="margin-top:6px; font-size:12px;">Served via Docker + Nginx &nbsp;·&nbsp; <code style="font-size:11px; font-family:'JetBrains Mono',monospace; background:#12151f; border:1px solid #2a2d3e; border-radius:4px; padding:2px 8px; color:#7ee8a2;">docker run -d -p 8080:80 custom-nginx-page</code></p>
 </footer>
 
 </body>

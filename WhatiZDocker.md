@@ -1,6 +1,6 @@
 # Containerization & Docker — Concepts and Reference
 
-**Date:** April 27, 2026
+**Date:** April 27, 2026 &nbsp;|&nbsp; **Repository:** [sarowar-alam/docker-3tier-deployment](https://github.com/sarowar-alam/docker-3tier-deployment)
 
 ---
 
@@ -10,9 +10,10 @@
 2. [What is Docker & Docker Architecture](#2-what-is-docker--docker-architecture)
 3. [Docker vs Virtual Machines](#3-docker-vs-virtual-machines)
 4. [Docker Images vs Containers](#4-docker-images-vs-containers)
-5. [Docker Commands Reference](#5-docker-commands-reference)
-6. [Dockerfile Basics](#6-dockerfile-basics)
-7. [Practical Demo — Custom Nginx HTML Page](#7-practical-demo--custom-nginx-html-page)
+5. [Installing Docker](#5-installing-docker)
+6. [Docker Commands Reference](#6-docker-commands-reference)
+7. [Dockerfile Basics](#7-dockerfile-basics)
+8. [Practical Demo — Custom Nginx HTML Page](#8-practical-demo--custom-nginx-html-page)
 
 ---
 
@@ -399,7 +400,141 @@ The **container** is the runtime process — started, stopped, and replaced as n
 
 ---
 
-## 5. Docker Commands Reference
+## 5. Installing Docker
+
+Docker can be installed on Linux servers (such as an AWS EC2 Ubuntu instance), Windows, and macOS. Choose the section that matches your environment.
+
+---
+
+### 5.1 Ubuntu 24.04 — EC2 Instance (Recommended for Production)
+
+These steps apply to a fresh **Ubuntu 24.04 LTS** EC2 instance. Run them as a user with `sudo` access.
+
+```bash
+# 1. Update package index
+sudo apt-get update
+
+# 2. Install prerequisite packages
+sudo apt-get install -y ca-certificates curl gnupg
+
+# 3. Add Docker's official GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# 4. Add the Docker apt repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 5. Install Docker Engine
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+# 6. Start and enable Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 7. Add your user to the docker group (avoid sudo on every command)
+sudo usermod -aG docker $USER
+newgrp docker
+
+# 8. Verify installation
+docker --version
+docker run hello-world
+```
+
+> **Note:** The `usermod` step requires you to log out and back in (or run `newgrp docker`) before the group change takes effect.
+
+#### Post-Install Checks
+
+```bash
+# Confirm Docker daemon is running
+sudo systemctl status docker
+
+# Check Docker system info
+docker info
+
+# Confirm Docker Compose plugin
+docker compose version
+```
+
+---
+
+### 5.2 Windows — Docker Desktop
+
+Docker Desktop for Windows uses **WSL 2** (Windows Subsystem for Linux 2) as its backend.
+
+**Requirements:**
+- Windows 10 version 2004+ (Build 19041+) or Windows 11
+- WSL 2 enabled
+- Hardware virtualisation enabled in BIOS
+
+**Installation steps:**
+
+1. Download the installer from [docs.docker.com/desktop/install/windows-install](https://docs.docker.com/desktop/install/windows-install/)
+2. Run `Docker Desktop Installer.exe`
+3. Ensure **Use WSL 2 instead of Hyper-V** is checked during setup
+4. Restart your machine when prompted
+5. Launch Docker Desktop from the Start menu
+
+**Verify in PowerShell:**
+
+```powershell
+docker --version
+docker run hello-world
+```
+
+> **Tip:** Enable WSL 2 integration for your Linux distro under **Docker Desktop → Settings → Resources → WSL Integration**.
+
+---
+
+### 5.3 macOS — Docker Desktop
+
+Docker Desktop for macOS runs containers inside a lightweight Linux VM.
+
+**Requirements:**
+- macOS 12 (Monterey) or later
+- Apple Silicon (M1/M2/M3) or Intel chip — separate installers
+
+**Installation steps:**
+
+1. Download the correct installer from [docs.docker.com/desktop/install/mac-install](https://docs.docker.com/desktop/install/mac-install/)
+   - **Apple Silicon:** `Docker.dmg` (arm64)
+   - **Intel:** `Docker.dmg` (x86_64)
+2. Open the `.dmg` and drag **Docker** to your Applications folder
+3. Launch Docker from Applications
+4. Approve the system extension when prompted
+
+**Verify in Terminal:**
+
+```bash
+docker --version
+docker run hello-world
+```
+
+> **Tip (Homebrew alternative):**
+> ```bash
+> brew install --cask docker
+> ```
+
+---
+
+### 5.4 Quick Comparison
+
+| Platform | Engine | Compose | Notes |
+|---|---|---|---|
+| **Ubuntu 24.04 (EC2)** | Docker Engine (native Linux) | `docker compose` plugin | Best performance; no virtualisation overhead |
+| **Windows** | Docker Desktop + WSL 2 | Included | GUI + WSL 2 backend; slight overhead |
+| **macOS** | Docker Desktop + Linux VM | Included | Rosetta 2 available for x86 images on Apple Silicon |
+
+---
+
+## 6. Docker Commands Reference
 
 This section covers the most commonly used Docker commands. Each entry includes the syntax, purpose, and a practical example.
 
@@ -819,7 +954,7 @@ docker run -d --name frontend --network mynetwork frontend:1.0
 
 ---
 
-## 6. Dockerfile Basics
+## 7. Dockerfile Basics
 
 ### What is a Dockerfile?
 
@@ -1175,7 +1310,7 @@ Place instructions that change infrequently (installing system packages, copying
 
 ---
 
-## 7. Practical Demo — Custom Nginx HTML Page
+## 8. Practical Demo — Custom Nginx HTML Page
 
 ### Overview
 
