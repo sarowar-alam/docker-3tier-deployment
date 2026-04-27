@@ -1517,3 +1517,21 @@ docker rmi custom-nginx-page
 The `index.html` file in the `nginx-demo/` directory is a self-contained HTML page styled for professional presentation. It renders the core content of this documentation — covering containerization, Docker architecture, VM comparisons, and image vs container concepts — in a clean, readable layout suitable for demos, technical presentations, and learning sessions.
 
 The page uses only inline CSS and requires no external dependencies, making it fully portable and functional inside the container without any internet access.
+
+---
+
+## Project Lead
+
+**MD Sarowar Alam**  
+Lead DevOps Engineer, WPP Production  
+📧 Email: [sarowar@hotmail.com](mailto:sarowar@hotmail.com)  
+🔗 LinkedIn: https://www.linkedin.com/in/sarowar/
+
+---
+
+## AI Assistant
+
+**Claude Sonnet 4.6** by [Anthropic](https://www.anthropic.com/)  
+Used for architecture design, Dockerfile authoring, deployment documentation, and troubleshooting guidance throughout this project.
+
+---

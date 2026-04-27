@@ -111,7 +111,7 @@ backend/
 | `dotenv` | Env var loading | Yes |
 | `nodemon` | Dev auto-restart | **No** (`devDependencies`) |
 
-`npm install --omit=dev` excludes nodemon from the container image.
+`npm ci --omit=dev` excludes nodemon from the container image.
 
 ### Production Environment Variables
 
@@ -131,13 +131,14 @@ FROM node:20-alpine
 RUN apk add --no-cache dumb-init
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
-COPY package.json .
-RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
-COPY src/ src/
-RUN chown -R appuser:appgroup /app
+ENV NODE_ENV=production
+COPY --chown=appuser:appgroup package.json package-lock.json* ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY --chown=appuser:appgroup src/ src/
 USER appuser
 EXPOSE 3000
-ENV NODE_ENV=production
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "src/server.js"]
 ```
@@ -150,7 +151,7 @@ CMD ["node", "src/server.js"]
 
 **Non-root user** — Running as `appuser` reduces the blast radius of any container escape. If the process is compromised, the attacker has no root privileges.
 
-**Layer caching** — `COPY package.json` then `RUN npm install` is committed as a separate layer. Docker only re-runs `npm install` when `package.json` changes, not on every source code edit. This cuts rebuild time significantly.
+**Layer caching** — `COPY package.json` then `RUN npm ci` is committed as a separate layer. Docker only re-runs `npm ci` when `package.json` changes, not on every source code edit. This cuts rebuild time significantly.
 
 **`--omit=dev`** — Strips devDependencies (nodemon, etc.) from the production image, reducing attack surface and image size.
 
@@ -207,7 +208,7 @@ location /api/ {
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --ignore-scripts && npm cache clean --force
+RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build
 
@@ -217,6 +218,8 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost/health || exit 1
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
@@ -238,8 +241,9 @@ The final image contains zero Node.js, zero npm, zero source code. It is ~25MB a
 ```dockerfile
 FROM postgres:14-alpine
 ENV POSTGRES_USER=bmi_user
-ENV POSTGRES_PASSWORD=bmi_pass
 ENV POSTGRES_DB=bmidb
+# POSTGRES_PASSWORD is intentionally NOT baked in — pass at runtime:
+#   -e POSTGRES_PASSWORD=<your_password>
 COPY backend/migrations/001_create_measurements.sql /docker-entrypoint-initdb.d/
 COPY backend/migrations/002_add_measurement_date.sql /docker-entrypoint-initdb.d/
 EXPOSE 5432
@@ -332,23 +336,32 @@ Start containers in order: **database → backend → frontend**. The backend wi
 ```bash
 # ── 1. Database ───────────────────────────────────────────────
 # No -p flag: port 5432 is internal only
-# Named volume persists data across restarts
+# POSTGRES_PASSWORD passed at runtime — not baked into the image
 docker run -d \
   --name db \
   --network vitaltrack-net \
+  --restart=unless-stopped \
+  -e POSTGRES_PASSWORD=<your_password> \
   -v vitaltrack-pgdata:/var/lib/postgresql/data \
   vitaltrack-db
 
-# Wait ~5 seconds for PostgreSQL to initialise before starting backend
-sleep 5
+# Wait until PostgreSQL is actually accepting connections.
+# pg_isready is deterministic — safer than a fixed sleep.
+echo "Waiting for PostgreSQL to be ready..."
+until docker exec db pg_isready -U bmi_user -d bmidb -q; do
+  sleep 2
+done
+echo "PostgreSQL is ready."
 
 # ── 2. Backend ────────────────────────────────────────────────
 # No -p flag: port 3000 is internal only
-# DATABASE_URL uses "db" as hostname — resolved via Docker DNS
+# DATABASE_URL password must match POSTGRES_PASSWORD above
+# DATABASE_URL host must be "db" (container name) — NOT localhost
 docker run -d \
   --name backend \
   --network vitaltrack-net \
-  -e DATABASE_URL="postgresql://bmi_user:bmi_pass@db:5432/bmidb" \
+  --restart=unless-stopped \
+  -e DATABASE_URL="postgresql://bmi_user:<your_password>@db:5432/bmidb" \
   -e NODE_ENV=production \
   -e FRONTEND_URL="http://localhost" \
   vitaltrack-backend
@@ -358,6 +371,7 @@ docker run -d \
 docker run -d \
   --name frontend \
   --network vitaltrack-net \
+  --restart=unless-stopped \
   -p 80:80 \
   vitaltrack-frontend
 ```
@@ -409,7 +423,7 @@ docker logs frontend
 # Health check — should return {"status":"ok","environment":"production"}
 curl http://localhost/health
 
-# Fetch all measurements — should return [] on fresh install
+# Fetch all measurements — should return {"rows":[]} on fresh install
 curl http://localhost/api/measurements
 
 # Submit a test measurement
@@ -520,7 +534,7 @@ docker run -d \
   --name db \
   --network vitaltrack-net \
   --restart=unless-stopped \
-  -e POSTGRES_PASSWORD=bmi_pass \
+  -e POSTGRES_PASSWORD=<your_password> \
   -v vitaltrack-pgdata:/var/lib/postgresql/data \
   vitaltrack-db
 
@@ -533,11 +547,13 @@ done
 echo "PostgreSQL is ready."
 
 # Backend (internal only, FRONTEND_URL set to EC2 public IP)
+# DATABASE_URL password must match POSTGRES_PASSWORD exactly
+# DATABASE_URL host must be "db" (container name) — NOT localhost
 docker run -d \
   --name backend \
   --network vitaltrack-net \
   --restart=unless-stopped \
-  -e DATABASE_URL="postgresql://bmi_user:bmi_pass@db:5432/bmidb" \
+  -e DATABASE_URL="postgresql://bmi_user:<your_password>@db:5432/bmidb" \
   -e NODE_ENV=production \
   -e FRONTEND_URL="http://<EC2_PUBLIC_IP>" \
   vitaltrack-backend
@@ -671,3 +687,21 @@ app/
 │   └── Dockerfile          ← postgres:14-alpine, migrations auto-loaded
 └── README.md               ← this file
 ```
+
+---
+
+## Project Lead
+
+**MD Sarowar Alam**  
+Lead DevOps Engineer, WPP Production  
+📧 Email: [sarowar@hotmail.com](mailto:sarowar@hotmail.com)  
+🔗 LinkedIn: https://www.linkedin.com/in/sarowar/
+
+---
+
+## AI Assistant
+
+**Claude Sonnet 4.6** by [Anthropic](https://www.anthropic.com/)  
+Used for architecture design, Dockerfile authoring, deployment documentation, and troubleshooting guidance throughout this project.
+
+---
