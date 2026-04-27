@@ -698,10 +698,3 @@ Lead DevOps Engineer, WPP Production
 🔗 LinkedIn: https://www.linkedin.com/in/sarowar/
 
 ---
-
-## AI Assistant
-
-**Claude Sonnet 4.6** by [Anthropic](https://www.anthropic.com/)  
-Used for architecture design, Dockerfile authoring, deployment documentation, and troubleshooting guidance throughout this project.
-
----
